@@ -2,6 +2,7 @@ const { v4: uuidv4 } = require("uuid");
 
 const { validationResult } = require("express-validator");
 const HttpError = require("../models/http.error");
+const getCoordsForAddress = require("../util/location");
 
 let DUMMY_PLACES = [
   {
@@ -81,18 +82,23 @@ const getPlacesByUserId = (req, res, nxt) => {
   res.json({ places });
 };
 
-const createPlace = (req, res, nxt) => {
+const createPlace = async (req, res, nxt) => {
   const errs = validationResult(req);
-  console.log(errs);
 
-  if (!errs.isEmpty) {
-    throw new HttpError(
-      "Invalid data has beed passed! pleased check you data",
-      422
+  if (!errs.isEmpty()) {
+    console.log("Error: ", errs);
+    nxt(
+      new HttpError("Invalid data has beed passed! pleased check you data", 422)
     );
   }
+  const { title, description, address, creator } = req.body;
+  let location;
+  try {
+    location = await getCoordsForAddress(address);
+  } catch (error) {
+    nxt(error);
+  }
 
-  const { title, description, location, address, creator } = req.body;
   const createPlace = {
     id: uuidv4(),
     title,
@@ -107,6 +113,16 @@ const createPlace = (req, res, nxt) => {
 };
 
 const updatePlace = (req, res, nxt) => {
+  const errs = validationResult(req);
+
+  if (!errs.isEmpty()) {
+    console.log("Error: ", errs);
+    throw new HttpError(
+      "Invalid data has beed passed! pleased check you data",
+      422
+    );
+  }
+
   const { title, description } = req.body;
   const placeId = req.params.pid;
 
@@ -122,6 +138,11 @@ const updatePlace = (req, res, nxt) => {
 
 const deletePlace = (req, res, nxt) => {
   const placeId = req.params.pid;
+
+  if (!DUMMY_PLACES.find((p) => p.id === placeId)) {
+    throw new HttpError("Could not find place", 404);
+  }
+
   DUMMY_PLACES = DUMMY_PLACES.filter((p) => p.id !== placeId);
   res.status(200).json({ message: "Place deleted." });
 };
