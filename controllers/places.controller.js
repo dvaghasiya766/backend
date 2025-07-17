@@ -1,5 +1,6 @@
 const { v4: uuidv4 } = require("uuid");
 
+const { validationResult } = require("express-validator");
 const HttpError = require("../models/http.error");
 
 let DUMMY_PLACES = [
@@ -81,6 +82,16 @@ const getPlacesByUserId = (req, res, nxt) => {
 };
 
 const createPlace = (req, res, nxt) => {
+  const errs = validationResult(req);
+  console.log(errs);
+
+  if (!errs.isEmpty) {
+    throw new HttpError(
+      "Invalid data has beed passed! pleased check you data",
+      422
+    );
+  }
+
   const { title, description, location, address, creator } = req.body;
   const createPlace = {
     id: uuidv4(),
