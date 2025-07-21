@@ -82,24 +82,25 @@ const getPlacesByUserId = (req, res, nxt) => {
   res.json({ places });
 };
 
-const createPlace = async (req, res, nxt) => {
-  const errs = validationResult(req);
+const createPlace = async (req, res, next) => {  // Changed `nxt` to `next`
+  const errors = validationResult(req);
 
-  if (!errs.isEmpty()) {
-    console.log("Error: ", errs);
-    return nxt(
-      new HttpError("Invalid data has beed passed! pleased check you data", 422)
+  if (!errors.isEmpty()) {
+    console.log("Validation Errors: ", errors);
+    return next(  // Changed `nxt` to `next`
+      new HttpError("Invalid data has been passed! Please check your input.", 422)
     );
   }
+
   const { title, description, address, creator } = req.body;
   let location;
   try {
     location = await getCoordsForAddress(address);
   } catch (error) {
-    return nxt(error);
+    return next(error);  // Changed `nxt` to `next`
   }
 
-  const createPlace = {
+  const createdPlace = {  // Renamed from `createPlace` to avoid confusion
     id: uuidv4(),
     title,
     description,
@@ -108,8 +109,8 @@ const createPlace = async (req, res, nxt) => {
     creator,
   };
 
-  DUMMY_PLACES.push(createPlace); // use unshift() to add at first index ([0])
-  res.status(201).json({ place: createPlace });
+  DUMMY_PLACES.push(createdPlace);
+  res.status(201).json({ place: createdPlace });
 };
 
 const updatePlace = (req, res, nxt) => {
