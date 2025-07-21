@@ -87,7 +87,7 @@ const createPlace = async (req, res, nxt) => {
 
   if (!errs.isEmpty()) {
     console.log("Error: ", errs);
-    nxt(
+    return nxt(
       new HttpError("Invalid data has beed passed! pleased check you data", 422)
     );
   }
@@ -96,7 +96,7 @@ const createPlace = async (req, res, nxt) => {
   try {
     location = await getCoordsForAddress(address);
   } catch (error) {
-    nxt(error);
+    return nxt(error);
   }
 
   const createPlace = {
