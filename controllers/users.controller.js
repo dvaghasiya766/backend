@@ -1,7 +1,8 @@
 const { v4: uuidv4 } = require("uuid");
-const { validationResult } = require("express-validator");
 
+const { validationResult } = require("express-validator");
 const HttpError = require("../models/http.error");
+const User = require("../models/user");
 
 const DUMMY_USERS = [
   {
@@ -12,47 +13,76 @@ const DUMMY_USERS = [
   },
 ];
 
-const getUsers = (req, res, nxt) => {
-  res.json({ users: DUMMY_USERS });
+const getUsers = async (req, res, nxt) => {
+  let users;
+
+  try {
+    users = await User.find({}, "-password");
+  } catch (err) {
+    return nxt(
+      new HttpError("Fetching Users Failed! Please try again leter...", 500)
+    );
+  }
+
+  res.json({
+    users: users.map((user) => user.toObject({ getters: true })),
+  });
 };
 
-const signup = (req, res, nxt) => {
+const signup = async (req, res, nxt) => {
   const errs = validationResult(req);
 
   if (!errs.isEmpty()) {
     console.log("Error: ", errs);
-    throw new HttpError(
-      "Invalid data has beed passed! pleased check you data",
-      422
+    return nxt(
+      new HttpError("Invalid data has beed passed! pleased check you data", 422)
     );
   }
 
   const { name, email, password } = req.body;
+  let exsitingUser;
 
-  const hasUser = DUMMY_USERS.find((u) => u.email === email);
-  if (hasUser) {
-    throw new HttpError("Could not create user, email already exists!", 422);
+  try {
+    exsitingUser = await User.findOne({ email: email });
+  } catch (err) {
+    return nxt(new HttpError("Signing up Failed, please try again..."), 500);
+  }
+  if (exsitingUser) {
+    return nxt(
+      new HttpError("User exists already! Kindly Login instend...", 422)
+    );
   }
 
-  const createdUser = {
-    id: uuidv4(),
+  const createdUser = new User({
     name,
     email,
+    image:
+      "https://images.pexels.com/photos/414612/pexels-photo-414612.jpeg?cs=srgb&dl=pexels-souvenirpixels-414612.jpg&fm=jpg",
     password,
-  };
+    places:[],
+  });
 
-  DUMMY_USERS.push(createdUser);
-  res.status(201).json({ message: "user has been added" });
+  try {
+    const result = await createdUser.save();
+    res.status(201).json({ user: createdUser.toObject({ getters: true }) });
+  } catch (err) {
+    const error = new HttpError("Signing up Failed! Please Try Again...", 500);
+    return nxt(error);
+  }
 };
-const login = (req, res, nxt) => {
-  const { email, password } = req.body;
-  const identifiedUser = DUMMY_USERS.find((u) => u.email === email);
 
-  if (!identifiedUser || identifiedUser.password !== password) {
-    throw new HttpError(
-      "Couldn't identify user, credentials seem to be wrong!",
-      401
-    );
+const login = async (req, res, nxt) => {
+  const { email, password } = req.body;
+  let exsitingUser;
+
+  try {
+    exsitingUser = await User.findOne({ email: email });
+  } catch (err) {
+    return nxt(new HttpError("Login in Failed, please try again..."), 500);
+  }
+
+  if (!exsitingUser || exsitingUser.password !== password) {
+    return nxt(new HttpError("Invalid Credentials! Could not Login...", 401));
   }
 
   res.json({ message: "Logged in..." });
