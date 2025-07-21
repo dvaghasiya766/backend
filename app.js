@@ -6,7 +6,6 @@ require("dotenv").config();
 const placesRoutes = require("./routes/places.routes");
 const usersRoutes = require("./routes/users.routes");
 const HttpError = require("./models/http.error");
-const httpError = require("./models/http.error");
 
 const app = express();
 
@@ -22,7 +21,7 @@ app.use((req, res, nxt) => {
 
 app.use((err, req, res, nxt) => {
   if (res.headerSent) {
-    return next(error);
+    return nxt(err);
   }
 
   res
