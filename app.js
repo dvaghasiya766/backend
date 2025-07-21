@@ -1,6 +1,6 @@
 const express = require("express");
 const bodyParser = require("body-parser");
-
+const mongoose = require("mongoose");
 require("dotenv").config();
 
 const placesRoutes = require("./routes/places.routes");
@@ -29,4 +29,13 @@ app.use((err, req, res, nxt) => {
     .json({ message: err.message || "An unknown error occurred!!" });
 });
 
-app.listen(5000);
+mongoose
+  .connect(
+    `mongodb+srv://ccbpiansdev:${process.env.MONGO_PASSWORD}@cluster0.phkiza4.mongodb.net/places?retryWrites=true&w=majority`
+  )
+  .then(() => {
+    app.listen(5000);
+  })
+  .catch((err) => {
+    console.log(err);
+  });
