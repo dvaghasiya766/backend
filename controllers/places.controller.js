@@ -1,8 +1,10 @@
 const { v4: uuidv4 } = require("uuid");
+const mongoose = require("mongoose");
 
 const { validationResult } = require("express-validator");
 const HttpError = require("../models/http.error");
 const Place = require("../models/place");
+const User = require("../models/user");
 const getCoordsForAddress = require("../util/location");
 
 const getPlaceById = async (req, res, nxt) => {
@@ -60,7 +62,6 @@ const createPlace = async (req, res, nxt) => {
   if (!errors.isEmpty()) {
     console.log("Validation Errors: ", errors);
     return nxt(
-      // Changed `nxt` to `next`
       new HttpError(
         "Invalid data has been passed! Please check your input.",
         422
@@ -74,7 +75,7 @@ const createPlace = async (req, res, nxt) => {
   try {
     location = await getCoordsForAddress(address);
   } catch (error) {
-    return next(error); // Changed `nxt` to `next`
+    return nxt(error);
   }
 
   const createdPlace = new Place({
@@ -87,14 +88,30 @@ const createPlace = async (req, res, nxt) => {
     creator,
   });
 
+  let user;
   try {
-    const result = await createdPlace.save();
+    user = await User.findById(creator);
   } catch (err) {
-    const error = new HttpError(
-      "Creating Place Failed! Please Try Again...",
-      500
+    return nxt(
+      new HttpError("Creating Place Failed! Please try again later...", 500)
     );
-    return next(error);
+  }
+
+  if (!user) {
+    return nxt(new HttpError("User not Found...", 404));
+  }
+
+  try {
+    const sess = await mongoose.startSession();
+    sess.startTransaction();
+    await createdPlace.save({ session: sess });
+    user.places.push(createdPlace);
+    await user.save({ session: sess });
+    await sess.commitTransaction();
+  } catch (err) {
+    return nxt(
+      new HttpError("Creating Place Failed! Please Try Again...", 500)
+    );
   }
 
   res.status(201).json({ place: createdPlace });
