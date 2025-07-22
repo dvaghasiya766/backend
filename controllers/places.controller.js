@@ -31,7 +31,6 @@ const getPlaceById = async (req, res, nxt) => {
 
 const getPlacesByUserId = async (req, res, nxt) => {
   const userId = req.params.uid;
-  // let places;
   let userWithPlaces;
 
   try {
