@@ -31,7 +31,7 @@ app.use((err, req, res, nxt) => {
 
 mongoose
   .connect(
-    `mongodb+srv://ccbpiansdev:${process.env.MONGO_PASSWORD}@cluster0.phkiza4.mongodb.net/places?retryWrites=true&w=majority`
+    `mongodb+srv://ccbpiansdev:${process.env.MONGO_PASSWORD}@cluster0.phkiza4.mongodb.net/mern?retryWrites=true&w=majority`
   )
   .then(() => {
     app.listen(5000);
